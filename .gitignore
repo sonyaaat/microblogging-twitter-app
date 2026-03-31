@@ -33,3 +33,9 @@ Thumbs.db
 
 node_modules/
 dist/
+
+# Next.js
+.next/
+
+# Local JSON database
+data/db.json
