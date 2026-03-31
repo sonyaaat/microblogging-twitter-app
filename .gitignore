@@ -1,0 +1,35 @@
+# Virtual Environment
+.venv/
+venv/
+env/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Flask
+instance/
+*.db
+*.sqlite
+
+# Environment
+.env
+.flaskenv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+node_modules/
+dist/
