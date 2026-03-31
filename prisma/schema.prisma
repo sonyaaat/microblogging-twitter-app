@@ -1,0 +1,76 @@
+// Prisma schema for Microlog (microblogging app)
+// Post content max 280 chars: enforced at application layer
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  hashedPassword String
+  username       String   @unique
+  displayName    String
+  bio            String?  // nullable
+  avatarUrl      String?  // nullable
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+
+  posts   Post[]   @relation("UserPosts")
+  likes   Like[]   @relation("UserLikes")
+  replies Reply[]  @relation("UserReplies")
+
+  @@index([createdAt], map: "idx_user_createdAt")
+}
+
+model Post {
+  id        String   @id @default(uuid())
+  content   String   // max 280 chars (enforced in app layer)
+  authorId  String
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  author  User   @relation("UserPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  likes   Like[]
+  replies Reply[]
+
+  @@index([createdAt, id], map: "idx_post_createdAt_id_desc")
+  @@index([authorId, createdAt, id], map: "idx_post_authorId_createdAt_id_desc")
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  user  User @relation("UserLikes", fields: [userId], references: [id], onDelete: Cascade)
+  post  Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId], map: "uniq_like_userId_postId")
+  @@index([createdAt], map: "idx_like_createdAt")
+}
+
+model Reply {
+  id        String   @id @default(uuid())
+  content   String   // max 280 chars (enforced in app layer)
+  authorId  String
+  postId    String
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  author User @relation("UserReplies", fields: [authorId], references: [id], onDelete: Cascade)
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt, id], map: "idx_reply_postId_createdAt_id_asc")
+}
+
+// Indexes and their purpose:
+// idx_post_createdAt_id_desc: For fast global feed queries sorted by createdAt DESC, id DESC
+// idx_post_authorId_createdAt_id_desc: For fast profile page queries (user's posts) sorted by createdAt DESC
+// uniq_like_userId_postId: Prevents duplicate likes by the same user on the same post
+// idx_like_createdAt: For sorting likes by creation time (not a hot path, but useful for analytics)
+// idx_reply_postId_createdAt_id_asc: For fast retrieval of replies to a post, ordered by createdAt ASC
+// idx_user_createdAt: For sorting users by join date (not a hot path, but useful for admin/analytics)
